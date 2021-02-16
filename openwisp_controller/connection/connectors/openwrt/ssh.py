@@ -14,3 +14,9 @@ class OpenWrt(Ssh):
             self.exec_command('/etc/init.d/openwisp_config restart')
         else:
             logger.info('Configuration already being applied')
+
+
+class OpenWisp1(Ssh):
+    def update_config(self):
+        # TODO
+        pass

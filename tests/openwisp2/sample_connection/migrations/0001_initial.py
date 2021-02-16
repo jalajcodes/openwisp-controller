@@ -147,7 +147,14 @@ class Migration(migrations.Migration):
                                     'openwrt.ssh.OpenWrt'
                                 ),
                                 'OpenWRT SSH',
-                            )
+                            ),
+                            (
+                                (
+                                    'openwisp_controller.connection.connectors.'
+                                    'openwrt.ssh.OpenWisp1'
+                                ),
+                                'OpenWISP 1.x SSH',
+                            ),
                         ],
                         db_index=True,
                         help_text='leave blank to determine automatically',
