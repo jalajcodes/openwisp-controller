@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     'openwisp_controller.pki',
     'openwisp_controller.geo',
     'openwisp_controller.connection',
+    'openwisp_controller.subnet_division',
     'openwisp_users',
     'openwisp_notifications',
+    'openwisp_ipam',
     # openwisp2 admin theme
     # (must be loaded here)
     'openwisp_utils.admin_theme',

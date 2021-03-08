@@ -44,6 +44,22 @@ class AbstractVpn(ShareableOrgMixinUniqueName, BaseConfig):
         help_text=_('Select VPN configuration backend'),
     )
     notes = models.TextField(blank=True)
+    subnet = models.ForeignKey(
+        get_model_name('openwisp_ipam', 'Subnet'),
+        verbose_name=_('Subnet'),
+        help_text=_('Subnet IP addresses used by VPN clients, if applicable'),
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+    )
+    ip = models.ForeignKey(
+        get_model_name('openwisp_ipam', 'IpAddress'),
+        verbose_name=_('Internal IP'),
+        help_text=_('Internal IP address of the VPN server interface, if applicable'),
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+    )
     # diffie hellman parameters are required
     # in some VPN solutions (eg: OpenVPN)
     dh = models.TextField(blank=True)
@@ -80,6 +96,13 @@ class AbstractVpn(ShareableOrgMixinUniqueName, BaseConfig):
             raise ValidationError({'cert': msg})
         self._validate_org_relation('ca')
         self._validate_org_relation('cert')
+        self._validate_subnet_ip()
+
+    def _validate_subnet_ip(self):
+        if self.subnet and self.ip and self.ip.subnet != self.subnet:
+            raise ValidationError(
+                {'ip': _('VPN ip address must be within the VPN subnet')}
+            )
 
     def save(self, *args, **kwargs):
         """
@@ -89,6 +112,8 @@ class AbstractVpn(ShareableOrgMixinUniqueName, BaseConfig):
             self.cert = self._auto_create_cert()
         if not self.dh:
             self.dh = self._placeholder_dh
+        if self.subnet and not self.ip:
+            self.ip = self._auto_create_ip()
         is_adding = self._state.adding
         super().save(*args, **kwargs)
         if is_adding and self.dh == self._placeholder_dh:
@@ -129,6 +154,12 @@ class AbstractVpn(ShareableOrgMixinUniqueName, BaseConfig):
         cert.save()
         return cert
 
+    def _auto_create_ip(self):
+        """
+        Automatically generates host IP address
+        """
+        return self.subnet.request_ip()
+
     def get_context(self):
         """
         prepares context for netjsonconfig VPN backend
@@ -141,6 +172,16 @@ class AbstractVpn(ShareableOrgMixinUniqueName, BaseConfig):
             c.update([('cert', self.cert.certificate), ('key', self.cert.private_key)])
         if self.dh:
             c.update([('dh', self.dh)])
+        # NOTE: Is this required?
+        if self.subnet:
+            c.update(
+                {
+                    'subnet': str(self.subnet.subnet),
+                    'subnet_prefix': str(self.subnet.subnet.prefixlen),
+                }
+            )
+        if self.ip:
+            c['ip_address'] = self.ip.ip_address
         c.update(sorted(super().get_context().items()))
         return c
 

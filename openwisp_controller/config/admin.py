@@ -664,6 +664,8 @@ class VpnAdmin(
         'organization',
         'uuid',
         'key',
+        'subnet',
+        'ip',
         'ca',
         'cert',
         'backend',
