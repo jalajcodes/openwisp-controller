@@ -31,7 +31,7 @@ class AbstractSubnetDivisionRule(TimeStampedEditableModel, OrgMixin):
         ]
 
     def __str__(self):
-        return f'{self.label} | {self.organization}'
+        return f'{self.label}'
 
     def clean(self):
         self._validate_master_subnet_consistency()
