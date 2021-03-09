@@ -92,7 +92,7 @@ class AbstractSubnetDivisionIndex(models.Model):
         on_delete=models.CASCADE,
     )
     config = models.ForeignKey(
-        get_model_name('config', 'Config'), on_delete=models.CASCADE
+        get_model_name('config', 'Config'), on_delete=models.CASCADE, null=True
     )
 
     class Meta:

@@ -33,12 +33,12 @@ def add_subnet_division_rule_prefixlen(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=VpnClient, dispatch_uid='vpn_client_provision_subnet')
 def provision_subnets_ips(instance, **kwargs):
-    if not instance.vpn.subnet.subnetdivisionrule_set.filter:
+    try:
+        division_rule = instance.vpn.subnet.subnetdivisionrule_set.get(
+            organization_id=instance.vpn.organization_id, type='vpn',
+        )
+    except AttributeError:
         return
-
-    division_rule = instance.vpn.subnet.subnetdivisionrule_set.get(
-        organization_id=instance.vpn.organization_id, type='vpn',
-    )
 
     # Check subnets and IPs are already provisioned for this Config
     if SubnetDivisionIndex.objects.filter(

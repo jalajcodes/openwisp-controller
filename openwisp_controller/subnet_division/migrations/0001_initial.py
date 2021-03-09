@@ -91,6 +91,7 @@ class Migration(migrations.Migration):
                 (
                     'config',
                     models.ForeignKey(
+                        null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         to=settings.CONFIG_CONFIG_MODEL,
                     ),
