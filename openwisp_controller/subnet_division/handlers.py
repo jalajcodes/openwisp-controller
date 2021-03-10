@@ -1,12 +1,8 @@
-from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
 from netaddr import IPNetwork
 from swapper import load_model
-
-from .exceptions import InvalidVariableName
-from .tasks import create_subnet_ip_division_rule_index
 
 Subnet = load_model('openwisp_ipam', 'Subnet')
 IpAddress = load_model('openwisp_ipam', 'IpAddress')
@@ -24,11 +20,32 @@ def add_subnet_division_rule_prefixlen(sender, instance, created, **kwargs):
             keyword=f'{instance.label}_prefixlen', rule_id=instance.id
         )
     else:
-        SubnetDivisionIndex.objects.filter(
-            rule_id=instance.id, subnet_id=None, ip_id=None
-        ).update(keyword=f'{instance.label}_prefixlen')
+        # TODO: Offload this to celery
+        index_queryset = SubnetDivisionIndex.objects.filter(rule_id=instance.id)
 
-        # TODO: Update labels for rest of the entries
+        # Handles change in label of SubnetDivisionRule
+        for index in index_queryset:
+            identifiers = index.keyword.split('_')
+            identifiers[0] = instance.label
+            index.keyword = '_'.join(identifiers)
+        SubnetDivisionIndex.objects.bulk_update(
+            index_queryset, fields=['keyword'], batch_size=20
+        )
+
+        subnet_queryset = Subnet.objects.filter(
+            id__in=index_queryset.values_list('subnet_id')
+        )
+        for subnet in subnet_queryset:
+            identifiers = subnet.name.split('_')
+            identifiers[0] = instance.label
+            subnet.name = '_'.join(identifiers)
+            subnet.description = _(
+                f'Automatically generated using {instance.label} rule.'
+            )
+
+        Subnet.objects.bulk_update(
+            subnet_queryset, fields=['name', 'description'], batch_size=20
+        )
 
 
 @receiver(post_save, sender=VpnClient, dispatch_uid='vpn_client_provision_subnet')
